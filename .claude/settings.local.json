@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Rscript:*)",
+      "Bash(open:*)",
+      "Bash(pandoc:*)",
+      "Bash(brew install:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}

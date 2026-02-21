@@ -1,0 +1,33 @@
+# R and RStudio
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+Rplots.pdf
+
+# targets cache
+_targets/
+_targets.yaml
+
+# Output directories
+handoff_outputs/
+report_outputs/
+figures/
+data/
+output/
+
+# Old output files (can be regenerated)
+*.html
+*.md
+!README.md
+!handoff.Rmd
+!report.Rmd
+
+# Temporary files
+*.log
+*.tmp
+.DS_Store
+
+# Environment files
+.Renviron
+.Rprofile

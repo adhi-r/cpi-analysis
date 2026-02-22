@@ -2,7 +2,13 @@ library(targets)
 library(tarchetypes)
 
 tar_option_set(
-  packages = c("tidyverse", "httr2", "jsonlite", "blscrapeR", "scales", "patchwork", "knitr", "rmarkdown")
+  packages = c("tidyverse", "httr2", "jsonlite", "blscrapeR", "scales", "patchwork",
+               "knitr", "rmarkdown",
+               # Robustness analysis packages
+               "metRology",  # location-scale t-distribution
+               "sandwich",   # HAC standard errors
+               "lmtest",     # coeftest with robust SEs
+               "zoo")        # rollapply for moving averages
 )
 
 # Source all R/ files
@@ -139,6 +145,162 @@ list(
   ),
 
   # ──────────────────────────────────────────────
+  # PHASE 6.5: Robustness Analysis
+  # ──────────────────────────────────────────────
+
+  # Alternative distributional assumptions
+  tar_target(
+    forecasts_t,
+    terminal_prices |> fit_all_forecasts_t()
+    # Fit Student's t-distribution (heavier tails than normal)
+  ),
+
+  tar_target(
+    forecasts_nonparam,
+    terminal_prices |> fit_all_forecasts_nonparametric()
+    # Fit non-parametric CDF (no distributional assumption)
+  ),
+
+  # Strike window sensitivity
+  tar_target(
+    forecasts_window_1,
+    fit_forecasts_window(terminal_prices, actuals, n_strikes_each_side = 1)
+    # Refit using only 1 strike each side (narrower window)
+  ),
+
+  tar_target(
+    forecasts_window_3,
+    fit_forecasts_window(terminal_prices, actuals, n_strikes_each_side = 3)
+    # Refit using 3 strikes each side (wider window)
+  ),
+
+  tar_target(
+    forecasts_window_4,
+    fit_forecasts_window(terminal_prices, actuals, n_strikes_each_side = 4)
+    # Refit using 4 strikes each side (widest window)
+  ),
+
+  # Build robustness panels
+  tar_target(
+    panel_t,
+    build_panel(forecasts_t, actuals, volume_ts) |>
+      mutate(
+        error = forecast_mean - actual_print,
+        abs_error = abs(error),
+        z_score = (actual_print - forecast_mean) / forecast_sigma
+      )
+  ),
+
+  tar_target(
+    panel_nonparam,
+    # For non-parametric, join manually (different column names)
+    forecasts_nonparam |>
+      left_join(actuals, by = "cpi_month") |>
+      left_join(volume_ts, by = c("cpi_type", "cpi_month", "event_ticker")) |>
+      mutate(
+        actual_print = case_when(
+          cpi_type == "headline_mom" ~ actual_mom,
+          cpi_type == "headline_yoy" ~ actual_yoy,
+          cpi_type == "core_mom"     ~ actual_core_mom,
+          cpi_type == "core_yoy"     ~ actual_core_yoy,
+          TRUE                        ~ NA_real_
+        ),
+        error = forecast_median - actual_print,
+        abs_error = abs(error)
+      ) |>
+      select(cpi_type, cpi_month, event_ticker, total_volume, num_strikes,
+             forecast_median, forecast_iqr, actual_print, error, abs_error, r_squared, n_informative)
+  ),
+
+  tar_target(
+    panel_window_1,
+    build_panel(forecasts_window_1, actuals, volume_ts) |>
+      mutate(
+        error = forecast_mean - actual_print,
+        abs_error = abs(error)
+      )
+  ),
+
+  tar_target(
+    panel_window_3,
+    build_panel(forecasts_window_3, actuals, volume_ts) |>
+      mutate(
+        error = forecast_mean - actual_print,
+        abs_error = abs(error)
+      )
+  ),
+
+  tar_target(
+    panel_window_4,
+    build_panel(forecasts_window_4, actuals, volume_ts) |>
+      mutate(
+        error = forecast_mean - actual_print,
+        abs_error = abs(error)
+      )
+  ),
+
+  # Temporal stability
+  tar_target(
+    temporal_split,
+    split_temporal(panel)
+  ),
+
+  tar_target(
+    structural_break_test,
+    test_structural_break(panel)
+  ),
+
+  # Benchmark forecasts
+  tar_target(
+    benchmarks_rw,
+    generate_random_walk_forecasts(actuals)
+  ),
+
+  tar_target(
+    benchmarks_ma,
+    generate_ma_forecasts(actuals, n_months = 3)
+  ),
+
+  tar_target(
+    panel_with_benchmarks,
+    panel |>
+      left_join(benchmarks_rw, by = c("cpi_type", "cpi_month")) |>
+      left_join(benchmarks_ma, by = c("cpi_type", "cpi_month"))
+  ),
+
+  # Robust inference
+  tar_target(
+    hac_standard_errors,
+    compute_hac_se(panel, max_lag = 3)
+  ),
+
+  tar_target(
+    bootstrap_ci,
+    bootstrap_accuracy_ci(panel, n_boot = 1000, seed = 42)
+  ),
+
+  # Specification curve
+  tar_target(
+    specification_curve,
+    build_specification_curve(
+      baseline_panel = panel,
+      t_dist_panel = panel_t,
+      nonparam_panel = panel_nonparam,
+      window_1_panel = panel_window_1,
+      window_3_panel = panel_window_3,
+      window_4_panel = panel_window_4,
+      panel_with_benchmarks = panel_with_benchmarks,
+      pre_2024_panel = temporal_split$pre_2024,
+      post_2024_panel = temporal_split$post_2024
+    )
+  ),
+
+  tar_target(
+    spec_curve_plot,
+    plot_specification_curve(specification_curve)
+  ),
+
+  # ──────────────────────────────────────────────
   # PHASE 7: Charts
   # ──────────────────────────────────────────────
 
@@ -186,6 +348,12 @@ list(
     handoff,
     "handoff.Rmd",
     output_dir = "handoff_outputs"
+  ),
+
+  tar_render(
+    robustness_report,
+    "robustness_analysis.Rmd",
+    output_dir = "robustness_outputs"
   ),
 
   # ──────────────────────────────────────────────

@@ -317,10 +317,17 @@ list(
   ),
 
   tar_target(
+    plot_learning_curve,
+    make_learning_curve_plot(panel)
+    # Learning curve: forecasters improve over time
+  ),
+
+  tar_target(
     save_outputs,
     {
       dir.create("figures", showWarnings = FALSE, recursive = TRUE)
       ggsave("figures/volume_vs_accuracy.png", plot_scatter, width = 8, height = 6)
+      ggsave("figures/learning_curve.png", plot_learning_curve, width = 10, height = 6)
       gt::gtsave(period_table, "figures/period_summary.png")
       "figures/"
     },

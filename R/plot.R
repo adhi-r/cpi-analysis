@@ -89,3 +89,41 @@ make_scatter_plot <- function(panel) {
     ) +
     theme_minimal(base_size = 14)
 }
+
+
+#' Learning curve: accuracy improves over time as forecasters gain experience
+
+make_learning_curve_plot <- function(panel) {
+  panel |>
+    filter(!is.na(abs_error_clean)) |>
+    mutate(
+      period = case_when(
+        cpi_month < as.Date("2023-06-01") ~ "Pre-dog days",
+        cpi_month >= as.Date("2023-06-01") & cpi_month < as.Date("2025-01-01") ~ "Dog days",
+        cpi_month >= as.Date("2025-01-01") ~ "Post-Robinhood"
+      ),
+      period = factor(period, levels = c("Pre-dog days", "Dog days", "Post-Robinhood"))
+    ) |>
+    ggplot(aes(x = cpi_month, y = abs_error_clean)) +
+    geom_point(aes(color = period), size = 2.5, alpha = 0.6) +
+    geom_smooth(method = "loess", se = TRUE, color = "#253494", fill = "#2c7fb8", alpha = 0.2, linewidth = 1.2) +
+    scale_x_date(date_breaks = "6 months", date_labels = "%b\n%Y") +
+    scale_y_continuous(labels = function(x) paste0(x, "pp")) +
+    scale_color_manual(values = c(
+      "Pre-dog days" = "#E74C3C",
+      "Dog days" = "#F39C12",
+      "Post-Robinhood" = "#27AE60"
+    )) +
+    labs(
+      title = "Forecasters got better with practice, even as volume collapsed",
+      subtitle = "Absolute forecast error over time, with trend line showing learning curve",
+      x = NULL,
+      y = "Absolute error (pp)",
+      color = "Period"
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(
+      legend.position = "bottom",
+      panel.grid.minor = element_blank()
+    )
+}

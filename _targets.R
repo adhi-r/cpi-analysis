@@ -3,7 +3,7 @@ library(tarchetypes)
 
 tar_option_set(
   packages = c("tidyverse", "httr2", "jsonlite", "blscrapeR", "scales", "patchwork",
-               "knitr", "rmarkdown",
+               "knitr", "rmarkdown", "gt",
                # Robustness analysis packages
                "metRology",  # location-scale t-distribution
                "sandwich",   # HAC standard errors
@@ -301,19 +301,13 @@ list(
   ),
 
   # ──────────────────────────────────────────────
-  # PHASE 7: Charts
+  # PHASE 7: Charts and Tables
   # ──────────────────────────────────────────────
 
   tar_target(
-    plot_volume,
-    make_volume_plot(volume_ts)
-    # Line chart: volume over time, one line per cpi_type
-  ),
-
-  tar_target(
-    plot_accuracy,
-    make_accuracy_plot(panel)
-    # Line chart: abs_error over time, possibly with volume on secondary axis
+    period_table,
+    make_period_summary_table(panel)
+    # Summary table showing volume and accuracy across three key periods
   ),
 
   tar_target(
@@ -323,12 +317,11 @@ list(
   ),
 
   tar_target(
-    save_plots,
+    save_outputs,
     {
       dir.create("figures", showWarnings = FALSE, recursive = TRUE)
-      ggsave("figures/volume_over_time.png", plot_volume, width = 10, height = 6)
-      ggsave("figures/accuracy_over_time.png", plot_accuracy, width = 10, height = 6)
       ggsave("figures/volume_vs_accuracy.png", plot_scatter, width = 8, height = 6)
+      gt::gtsave(period_table, "figures/period_summary.png")
       "figures/"
     },
     format = "file"
@@ -364,7 +357,7 @@ list(
     handoff_package,
     {
       # Force dependencies on prior targets
-      stopifnot(file.exists(save_plots))
+      stopifnot(file.exists(save_outputs))
       stopifnot(file.exists(panel_csv))
 
       # Create handoff directory

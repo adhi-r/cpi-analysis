@@ -1,4 +1,4 @@
-#' Volume over time — bar plot with log scale, faceted by type
+#' Volume over time — bar plot with linear scale, faceted by type
 
 make_volume_plot <- function(volume_ts) {
   volume_ts |>
@@ -15,7 +15,7 @@ make_volume_plot <- function(volume_ts) {
     geom_col() +
     facet_wrap(~cpi_label, ncol = 1, scales = "free_y") +
     scale_x_date(date_breaks = "3 months", date_labels = "%b\n%y") +
-    scale_y_log10(labels = scales::comma) +
+    scale_y_continuous(labels = scales::comma) +
     scale_fill_manual(values = c(
       "Headline MoM" = "#1b9e77",
       "Headline YoY" = "#d95f02",
@@ -23,9 +23,9 @@ make_volume_plot <- function(volume_ts) {
       "Core YoY" = "#e7298a"
     )) +
     labs(
-      title = "Kalshi CPI Market Volume Over Time",
-      subtitle = "Total contracts traded per monthly event (log scale)",
-      x = NULL, y = "Contracts traded (log scale)"
+      title = "Robinhood integration caused an 816-fold volume spike",
+      subtitle = "Total contracts traded per CPI event, by market type",
+      x = NULL, y = "Contracts traded"
     ) +
     theme_minimal(base_size = 12) +
     theme(
@@ -60,8 +60,8 @@ make_accuracy_plot <- function(panel) {
       "Core YoY" = "#e7298a"
     )) +
     labs(
-      title = "CPI Forecast Accuracy Over Time",
-      subtitle = "|Market forecast − actual print| (clean: 2 strikes each side)",
+      title = "Forecast accuracy stayed stable despite massive volume swings",
+      subtitle = "Absolute error between market forecast and actual CPI print, by market type",
       x = NULL, y = "Absolute error (pp)"
     ) +
     theme_minimal(base_size = 12) +
@@ -72,7 +72,7 @@ make_accuracy_plot <- function(panel) {
     )
 }
 
-#' THE MONEY CHART: volume vs accuracy scatter
+#' THE MONEY CHART: volume vs accuracy scatter (log-log)
 
 make_scatter_plot <- function(panel) {
   panel |>
@@ -81,10 +81,11 @@ make_scatter_plot <- function(panel) {
     geom_point(size = 3, alpha = 0.6, color = "#2c7fb8") +
     geom_smooth(method = "lm", se = TRUE, color = "#253494", fill = "#2c7fb8", alpha = 0.2) +
     scale_x_log10(labels = scales::comma) +
+    scale_y_log10(labels = function(x) paste0(x, "pp")) +
     labs(
-      title = "Volume vs. Forecast Accuracy",
-      subtitle = "Each dot is one CPI event (all types combined)",
-      x = "Total volume (log scale)", y = "Absolute error (pp)"
+      title = "Trading volume doesn't predict forecast accuracy",
+      subtitle = "Each dot represents one CPI event across all market types (log-log scale)",
+      x = "Total volume (log scale)", y = "Absolute error (log scale)"
     ) +
     theme_minimal(base_size = 14)
 }

@@ -371,16 +371,16 @@ list(
       dir.create("handoff_outputs/figures", showWarnings = FALSE, recursive = TRUE)
 
       # Copy key plots to handoff folder
-      file.copy("figures/volume_over_time.png", "handoff_outputs/figures/volume_over_time.png", overwrite = TRUE)
-      file.copy("figures/accuracy_over_time.png", "handoff_outputs/figures/accuracy_over_time.png", overwrite = TRUE)
       file.copy("figures/volume_vs_accuracy.png", "handoff_outputs/figures/volume_vs_accuracy.png", overwrite = TRUE)
+      file.copy("figures/period_summary.png", "handoff_outputs/figures/period_summary.png", overwrite = TRUE)
+      file.copy("figures/learning_curve.png", "handoff_outputs/figures/learning_curve.png", overwrite = TRUE)
 
       # Copy panel CSV for reference
       file.copy("data/cpi_forecast_panel.csv", "handoff_outputs/cpi_forecast_panel.csv", overwrite = TRUE)
 
-      c("handoff_outputs/figures/volume_over_time.png",
-        "handoff_outputs/figures/accuracy_over_time.png",
-        "handoff_outputs/figures/volume_vs_accuracy.png",
+      c("handoff_outputs/figures/volume_vs_accuracy.png",
+        "handoff_outputs/figures/period_summary.png",
+        "handoff_outputs/figures/learning_curve.png",
         "handoff_outputs/cpi_forecast_panel.csv")
     },
     format = "file"

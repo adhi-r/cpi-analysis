@@ -95,7 +95,7 @@ make_scatter_plot <- function(panel) {
 
 make_learning_curve_plot <- function(panel) {
   panel |>
-    filter(!is.na(abs_error_clean)) |>
+    filter(!is.na(abs_error_clean), total_volume > 0) |>
     mutate(
       period = case_when(
         cpi_month < as.Date("2023-06-01") ~ "Pre-dog days",
@@ -105,25 +105,47 @@ make_learning_curve_plot <- function(panel) {
       period = factor(period, levels = c("Pre-dog days", "Dog days", "Post-Robinhood"))
     ) |>
     ggplot(aes(x = cpi_month, y = abs_error_clean)) +
-    geom_point(aes(color = period), size = 2.5, alpha = 0.6) +
+    geom_point(aes(color = period, size = total_volume), alpha = 0.6) +
     geom_smooth(method = "loess", se = TRUE, color = "#253494", fill = "#2c7fb8", alpha = 0.2, linewidth = 1.2) +
     scale_x_date(date_breaks = "6 months", date_labels = "%b\n%Y") +
     scale_y_continuous(labels = function(x) paste0(x, "pp")) +
+    scale_size_continuous(
+      range = c(1.5, 15),
+      labels = scales::comma,
+      breaks = c(1e2, 1e4, 1e6)
+    ) +
     scale_color_manual(values = c(
       "Pre-dog days" = "#E74C3C",
       "Dog days" = "#F39C12",
       "Post-Robinhood" = "#27AE60"
     )) +
     labs(
-      title = "Forecasters got better with practice, even as volume collapsed",
-      subtitle = "Absolute forecast error over time, with trend line showing learning curve",
+      title = "Forecasters got better with practice, even as volume ebbed and flowed",
+      subtitle = "Absolute CPI forecast error over time (lower is better). Dot size shows trading volume: tiny during\nthe low-volume dog days, massive post-Robinhood.",
       x = NULL,
       y = "Absolute error (pp)",
-      color = "Period"
+      color = "Period",
+      size = "Volume",
+      caption = "Source: @eightyhi analysis of Kalshi trade data. See footnote for methodology."
+    ) +
+    guides(
+      size = guide_legend(
+        title.position = "top",
+        title.hjust = 0.5,
+        order = 2
+      ),
+      color = guide_legend(
+        title.position = "top",
+        title.hjust = 0.5,
+        order = 1,
+        override.aes = list(size = 4)
+      )
     ) +
     theme_minimal(base_size = 14) +
     theme(
       legend.position = "bottom",
+      legend.box = "horizontal",
+      legend.spacing.x = unit(2, "cm"),
       panel.grid.minor = element_blank()
     )
 }
